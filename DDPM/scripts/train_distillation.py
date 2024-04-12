@@ -307,6 +307,7 @@ config = SimpleNamespace(
     epochs = 100,
     noise_steps=1000,
     seed = 42,
+    version = 2,	
     batch_size = 10,
     img_size = 32,
     num_classes = 10,
@@ -507,6 +508,7 @@ def parse_args(config):
     parser.add_argument('--lr', type=float, default=config.lr, help='learning rate')
     parser.add_argument('--slice_size', type=int, default=config.slice_size, help='slice size')
     parser.add_argument('--noise_steps', type=int, default=config.noise_steps, help='noise steps')
+    parser.add_argument('--version', type=int, default=config.version, help='compressed version 1/2')
     args = vars(parser.parse_args())
     
     # update config with parsed args
@@ -520,7 +522,7 @@ if __name__ == '__main__':
     ## seed everything
     set_seed(config.seed)
 
-    diffuser = Diffusion(config.noise_steps, img_size=config.img_size, num_classes=config.num_classes)
+    diffuser = Diffusion(config.noise_steps, img_size=config.img_size, num_classes=config.num_classes, version=config.version)
     with wandb.init(project="train_sd", group="train", config=config):
         diffuser.prepare(config)
         diffuser.fit(config)
