@@ -147,7 +147,7 @@ class UNet_student_v1(nn.Module):
         pos_enc = torch.cat([pos_enc_a, pos_enc_b], dim=-1)
         return pos_enc
 
-    def unet_forwad(self, x, t):
+    def unet_forward(self, x, t):
         print("Input size:",x.size())
         x1 = self.inc(x)
         print("Input size after inc1 :",x1.size())
@@ -191,7 +191,7 @@ class UNet_student_v1(nn.Module):
     def forward(self, x, t):
         t = t.unsqueeze(-1)
         t = self.pos_encoding(t, self.time_dim)
-        return self.unet_forwad(x, t)
+        return self.unet_forward(x, t)
     
     
 
