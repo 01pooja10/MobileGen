@@ -21,6 +21,10 @@ from fastprogress import progress_bar
 import wandb
  
 
+from unet_compressed_v2 import UNet_conditional_student_v2
+from unet_compressed_v1 import UNet_conditional_student_v1
+
+
 cifar_labels = "airplane,automobile,bird,cat,deer,dog,frog,horse,ship,truck".split(",")
 
 def set_seed(s, reproducible=False):
@@ -322,7 +326,7 @@ logging.basicConfig(format="%(asctime)s - %(levelname)s: %(message)s", level=log
 
 
 class Diffusion:
-    def __init__(self, noise_steps=1000, beta_start=1e-4, beta_end=0.02, img_size=256, num_classes=10, c_in=3, c_out=3, device="cuda", **kwargs):
+    def __init__(self, noise_steps=1000, beta_start=1e-4, beta_end=0.02, img_size=256, num_classes=10, c_in=3, c_out=3, device="cuda", version=2, **kwargs):
         self.noise_steps = noise_steps
         self.beta_start = beta_start
         self.beta_end = beta_end
@@ -333,8 +337,11 @@ class Diffusion:
 
         self.img_size = img_size
         self.model = UNet_conditional(c_in, c_out, num_classes=num_classes, **kwargs).to(device)
-		self.student_mod = UNet_student_v2(c_in, c_out, num_classes=num_classes,**kwargs).to(device)
-        
+		if version == 2:
+			self.student_mod = UNet_conditional_student_v2(c_in, c_out, num_classes=num_classes,**kwargs).to(device)
+		elif version == 1:
+			self.student_mod = UNet_conditional_student_v1(c_in, c_out, num_classes=num_classes,**kwargs).to(device)
+	        
 		self.ema_model = copy.deepcopy(self.student_mod).eval().requires_grad_(False)
         self.device = device
         self.c_in = c_in
