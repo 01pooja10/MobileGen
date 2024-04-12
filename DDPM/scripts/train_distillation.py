@@ -77,7 +77,7 @@ def get_data(args):
     #val_dataset = torchvision.datasets.CIFAR10(os.path.join(args.dataset_path, args.val_folder),download=True,transform=val_transforms,train=False)
 
 	# Load 64*64
-	train_dataset = torchvision.datasets.ImageFolder(os.path.join(args.dataset_path, args.train_folder), transform=train_transforms)
+    train_dataset = torchvision.datasets.ImageFolder(os.path.join(args.dataset_path, args.train_folder), transform=train_transforms)
     val_dataset = torchvision.datasets.ImageFolder(os.path.join(args.dataset_path, args.val_folder), transform=val_transforms)
     
     if args.slice_size>1:
