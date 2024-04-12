@@ -45,7 +45,7 @@ def one_batch(dl):
         
 
 def plot_images(images):
-    plt.figure(figsize=(32, 32))
+    plt.figure(figsize=(64, 64))
     plt.imshow(torch.cat([
         torch.cat([i for i in images.cpu()], dim=-1),
     ], dim=-2).permute(1, 2, 0).cpu())
@@ -73,9 +73,12 @@ def get_data(args):
         T.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
     ])
 
-    train_dataset = torchvision.datasets.CIFAR10(os.path.join(args.dataset_path, args.train_folder),download=True,transform=train_transforms,train=True)
-    val_dataset = torchvision.datasets.CIFAR10(os.path.join(args.dataset_path, args.val_folder),download=True,transform=val_transforms,train=False)
+    #train_dataset = torchvision.datasets.CIFAR10(os.path.join(args.dataset_path, args.train_folder),download=True,transform=train_transforms,train=True)
+    #val_dataset = torchvision.datasets.CIFAR10(os.path.join(args.dataset_path, args.val_folder),download=True,transform=val_transforms,train=False)
 
+	# Load 64*64
+	train_dataset = torchvision.datasets.ImageFolder(os.path.join(args.dataset_path, args.train_folder), transform=train_transforms)
+    val_dataset = torchvision.datasets.ImageFolder(os.path.join(args.dataset_path, args.val_folder), transform=val_transforms)
     
     if args.slice_size>1:
         train_dataset = torch.utils.data.Subset(train_dataset, indices=range(0, len(train_dataset), args.slice_size))
@@ -309,7 +312,7 @@ config = SimpleNamespace(
     seed = 42,
     version = 2,	
     batch_size = 10,
-    img_size = 32,
+    img_size = 64,
     num_classes = 10,
     dataset_path = "datasets",
     train_folder = "train",
