@@ -148,7 +148,7 @@ class UNet_student_v2(nn.Module):
         pos_enc = torch.cat([pos_enc_a, pos_enc_b], dim=-1)
         return pos_enc
 
-    def unet_forwad(self, x, t):
+    def unet_forward(self, x, t):
         #print("Input size:",x.size())
         x1 = self.inc(x)
         #print("Input size after inc1 :",x1.size())
@@ -186,9 +186,26 @@ class UNet_student_v2(nn.Module):
     def forward(self, x, t):
         t = t.unsqueeze(-1)
         t = self.pos_encoding(t, self.time_dim)
-        return self.unet_forwad(x, t)
+        return self.unet_forward(x, t)
     
-    
+
+
+class UNet_conditional_student_v2(UNet_student_v2):
+    def __init__(self, c_in=3, c_out=3, time_dim=256, num_classes=None, **kwargs):
+        super().__init__(c_in, c_out, time_dim, **kwargs)
+        if num_classes is not None:
+            self.label_emb = nn.Embedding(num_classes, time_dim)
+
+    def forward(self, x, t, y=None):
+        t = t.unsqueeze(-1)
+        t = self.pos_encoding(t, self.time_dim)
+
+        if y is not None:
+            t += self.label_emb(y)
+
+        return self.unet_forward(x, t)
+
+
 
 def test_time():
     
@@ -203,4 +220,4 @@ def test_time():
     
     print("Time taken:", (end1-st1))
     
-test_time()
+#test_time()
