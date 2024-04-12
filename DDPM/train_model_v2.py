@@ -1,3 +1,6 @@
+## This code is replicated from https://github.com/tcapelle/Diffusion-Models-pytorch/tree/main
+
+
 import os, random
 from pathlib import Path
 import torch
