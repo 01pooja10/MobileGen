@@ -105,7 +105,7 @@ class Up(nn.Module):
         return x + emb
 
 
-class UNet(nn.Module):
+class UNet_student_v2(nn.Module):
     def __init__(self, c_in=3, c_out=3, time_dim=256, remove_deep_conv=False):
         super().__init__()
         self.time_dim = time_dim
