@@ -351,7 +351,7 @@ class Diffusion:
 		model.eval()
 		with torch.inference_mode():
 			x = torch.randn((n, self.c_in, self.img_size, self.img_size)).to(self.device)
-			for i in progress_bar(reversed(range(1, self.noise_steps)), total=self.noise_steps-1, leave=False):
+			for i in tqdm(reversed(range(1, self.noise_steps))):
 				t = (torch.ones(n) * i).long().to(self.device)
 				predicted_noise = model(x, t, labels)
 				if cfg_scale > 0:
