@@ -54,7 +54,7 @@ async def stream_video(text: str = Form(...)):
     return StreamingResponse(stream_video(), media_type="video/mp4")
 
 @app.post("/generate_image")
-async def get_image(text: str = Form(...)):
+async def get_image(text: str):
     image_path = Path(generate_image(text))
     if not image_path.is_file():
         return {"error": "Image not found on the server"}
