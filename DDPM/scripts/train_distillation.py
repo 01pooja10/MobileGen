@@ -17,388 +17,368 @@ import argparse, logging, copy
 from types import SimpleNamespace
 from contextlib import nullcontext
 from torch import optim
-from fastprogress import progress_bar
+#from fastprogress import progress_bar
 import wandb
- 
+from tqdm import tqdm
 
 from unet_compressed_v2 import UNet_conditional_student_v2
-from unet_compressed_v1 import UNet_conditional_student_v1
+#from unet_compressed_v1 import UNet_conditional_student_v1
 
 
 cifar_labels = "airplane,automobile,bird,cat,deer,dog,frog,horse,ship,truck".split(",")
 
 def set_seed(s, reproducible=False):
-    "Set random seed for `random`, `torch`, and `numpy` (where available)"
-    try: torch.manual_seed(s)
-    except NameError: pass
-    try: torch.cuda.manual_seed_all(s)
-    except NameError: pass
-    try: np.random.seed(s%(2**32-1))
-    except NameError: pass
-    random.seed(s)
-    if reproducible:
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
+	"Set random seed for `random`, `torch`, and `numpy` (where available)"
+	try: torch.manual_seed(s)
+	except NameError: pass
+	try: torch.cuda.manual_seed_all(s)
+	except NameError: pass
+	try: np.random.seed(s%(2**32-1))
+	except NameError: pass
+	random.seed(s)
+	if reproducible:
+		torch.backends.cudnn.deterministic = True
+		torch.backends.cudnn.benchmark = False
 
 def one_batch(dl):
-    return next(iter(dl))
-        
+	return next(iter(dl))
+		
 
 def plot_images(images):
-    plt.figure(figsize=(64, 64))
-    plt.imshow(torch.cat([
-        torch.cat([i for i in images.cpu()], dim=-1),
-    ], dim=-2).permute(1, 2, 0).cpu())
-    plt.show()
+	plt.figure(figsize=(64, 64))
+	plt.imshow(torch.cat([
+		torch.cat([i for i in images.cpu()], dim=-1),
+	], dim=-2).permute(1, 2, 0).cpu())
+	plt.show()
 
 
 def save_images(images, path, **kwargs):
-    grid = torchvision.utils.make_grid(images, **kwargs)
-    ndarr = grid.permute(1, 2, 0).to('cpu').numpy()
-    im = Image.fromarray(ndarr)
-    im.save(path)
+	grid = torchvision.utils.make_grid(images, **kwargs)
+	ndarr = grid.permute(1, 2, 0).to('cpu').numpy()
+	im = Image.fromarray(ndarr)
+	im.save(path)
 
 
-def get_data(args):
-    train_transforms = torchvision.transforms.Compose([
-        T.Resize(args.img_size + int(.25*args.img_size)), 
-        T.RandomResizedCrop(args.img_size, scale=(0.8, 1.0)),
-        T.ToTensor(),
-        T.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-    ])
+def get_data():
+	train_transforms = torchvision.transforms.Compose([
+		T.Resize(config['img_size'] + int(.25*config['img_size'])), 
+		T.RandomResizedCrop(config['img_size'], scale=(0.8, 1.0)),
+		T.ToTensor(),
+		T.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+	])
 
-    val_transforms = torchvision.transforms.Compose([
-        T.Resize(args.img_size),
-        T.ToTensor(),
-        T.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-    ])
+	val_transforms = torchvision.transforms.Compose([
+		T.Resize(config['img_size']),
+		T.ToTensor(),
+		T.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+	])
 
-    #train_dataset = torchvision.datasets.CIFAR10(os.path.join(args.dataset_path, args.train_folder),download=True,transform=train_transforms,train=True)
-    #val_dataset = torchvision.datasets.CIFAR10(os.path.join(args.dataset_path, args.val_folder),download=True,transform=val_transforms,train=False)
+	#train_dataset = torchvision.datasets.CIFAR10(os.path.join(args.dataset_path, args.train_folder),download=True,transform=train_transforms,train=True)
+	#val_dataset = torchvision.datasets.CIFAR10(os.path.join(args.dataset_path, args.val_folder),download=True,transform=val_transforms,train=False)
 
 	# Load 64*64
-    train_dataset = torchvision.datasets.ImageFolder(os.path.join(args.dataset_path, args.train_folder), transform=train_transforms)
-    val_dataset = torchvision.datasets.ImageFolder(os.path.join(args.dataset_path, args.val_folder), transform=val_transforms)
-    
-    if args.slice_size>1:
-        train_dataset = torch.utils.data.Subset(train_dataset, indices=range(0, len(train_dataset), args.slice_size))
-        val_dataset = torch.utils.data.Subset(val_dataset, indices=range(0, len(val_dataset), args.slice_size))
+	train_dataset = torchvision.datasets.ImageFolder(os.path.join(config['dataset_path'], config['train_folder']), transform=train_transforms)
+	val_dataset = torchvision.datasets.ImageFolder(os.path.join(config['dataset_path'], config['val_folder']), transform=val_transforms)
+	
+	if config['slice_size']>1:
+		train_dataset = torch.utils.data.Subset(train_dataset, indices=range(0, len(train_dataset), config['slice_size']))
+		val_dataset = torch.utils.data.Subset(val_dataset, indices=range(0, len(val_dataset), config['slice_size']))
 
-    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
-    val_dataloader = DataLoader(val_dataset, batch_size=2*args.batch_size, shuffle=False, num_workers=args.num_workers)
-    return train_dataloader, val_dataloader
+	train_dataloader = DataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True, num_workers=config['num_workers'])
+	val_dataloader = DataLoader(val_dataset, batch_size=2*config['batch_size'], shuffle=False, num_workers=config['num_workers'])
+	return train_dataloader, val_dataloader
 
 
 def mk_folders(run_name):
-    os.makedirs("models", exist_ok=True)
-    os.makedirs("results", exist_ok=True)
-    os.makedirs(os.path.join("models", run_name), exist_ok=True)
-    os.makedirs(os.path.join("results", run_name), exist_ok=True)
+	os.makedirs("models", exist_ok=True)
+	os.makedirs("results", exist_ok=True)
+	os.makedirs(os.path.join("models", run_name), exist_ok=True)
+	os.makedirs(os.path.join("results", run_name), exist_ok=True)
 
 def one_param(m):
-    "get model first parameter"
-    return next(iter(m.parameters()))
+	"get model first parameter"
+	return next(iter(m.parameters()))
 
 class EMA:
-    def __init__(self, beta):
-        super().__init__()
-        self.beta = beta
-        self.step = 0
+	def __init__(self, beta):
+		super().__init__()
+		self.beta = beta
+		self.step = 0
 
-    def update_model_average(self, ma_model, current_model):
-        for current_params, ma_params in zip(current_model.parameters(), ma_model.parameters()):
-            old_weight, up_weight = ma_params.data, current_params.data
-            ma_params.data = self.update_average(old_weight, up_weight)
+	def update_model_average(self, ma_model, current_model):
+		for current_params, ma_params in zip(current_model.parameters(), ma_model.parameters()):
+			old_weight, up_weight = ma_params.data, current_params.data
+			ma_params.data = self.update_average(old_weight, up_weight)
 
-    def update_average(self, old, new):
-        if old is None:
-            return new
-        return old * self.beta + (1 - self.beta) * new
+	def update_average(self, old, new):
+		if old is None:
+			return new
+		return old * self.beta + (1 - self.beta) * new
 
-    def step_ema(self, ema_model, model, step_start_ema=2000):
-        if self.step < step_start_ema:
-            self.reset_parameters(ema_model, model)
-            self.step += 1
-            return
-        self.update_model_average(ema_model, model)
-        self.step += 1
+	def step_ema(self, ema_model, model, step_start_ema=2000):
+		if self.step < step_start_ema:
+			self.reset_parameters(ema_model, model)
+			self.step += 1
+			return
+		self.update_model_average(ema_model, model)
+		self.step += 1
 
-    def reset_parameters(self, ema_model, model):
-        ema_model.load_state_dict(model.state_dict())
+	def reset_parameters(self, ema_model, model):
+		ema_model.load_state_dict(model.state_dict())
 
 
 class SelfAttention(nn.Module):
-    def __init__(self, channels):
-        super(SelfAttention, self).__init__()
-        self.channels = channels        
-        self.mha = nn.MultiheadAttention(channels, 4, batch_first=True)
-        self.ln = nn.LayerNorm([channels])
-        self.ff_self = nn.Sequential(
-            nn.LayerNorm([channels]),
-            nn.Linear(channels, channels),
-            nn.GELU(),
-            nn.Linear(channels, channels),
-        )
+	def __init__(self, channels):
+		super(SelfAttention, self).__init__()
+		self.channels = channels        
+		self.mha = nn.MultiheadAttention(channels, 4, batch_first=True)
+		self.ln = nn.LayerNorm([channels])
+		self.ff_self = nn.Sequential(
+			nn.LayerNorm([channels]),
+			nn.Linear(channels, channels),
+			nn.GELU(),
+			nn.Linear(channels, channels),
+		)
 
-    def forward(self, x):
-        size = x.shape[-1]
-        x = x.view(-1, self.channels, size * size).swapaxes(1, 2)
-        x_ln = self.ln(x)
-        attention_value, _ = self.mha(x_ln, x_ln, x_ln)
-        attention_value = attention_value + x
-        attention_value = self.ff_self(attention_value) + attention_value
-        return attention_value.swapaxes(2, 1).view(-1, self.channels, size, size)
+	def forward(self, x):
+		size = x.shape[-1]
+		x = x.view(-1, self.channels, size * size).swapaxes(1, 2)
+		x_ln = self.ln(x)
+		attention_value, _ = self.mha(x_ln, x_ln, x_ln)
+		attention_value = attention_value + x
+		attention_value = self.ff_self(attention_value) + attention_value
+		return attention_value.swapaxes(2, 1).view(-1, self.channels, size, size)
 
 
 class DoubleConv(nn.Module):
-    def __init__(self, in_channels, out_channels, mid_channels=None, residual=False):
-        super().__init__()
-        self.residual = residual
-        if not mid_channels:
-            mid_channels = out_channels
-        self.double_conv = nn.Sequential(
-            nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1, bias=False),
-            nn.GroupNorm(1, mid_channels),
-            nn.GELU(),
-            nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1, bias=False),
-            nn.GroupNorm(1, out_channels),
-        )
+	def __init__(self, in_channels, out_channels, mid_channels=None, residual=False):
+		super().__init__()
+		self.residual = residual
+		if not mid_channels:
+			mid_channels = out_channels
+		self.double_conv = nn.Sequential(
+			nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1, bias=False),
+			nn.GroupNorm(1, mid_channels),
+			nn.GELU(),
+			nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1, bias=False),
+			nn.GroupNorm(1, out_channels),
+		)
 
-    def forward(self, x):
-        if self.residual:
-            return F.gelu(x + self.double_conv(x))
-        else:
-            return self.double_conv(x)
+	def forward(self, x):
+		if self.residual:
+			return F.gelu(x + self.double_conv(x))
+		else:
+			return self.double_conv(x)
 
 
 class Down(nn.Module):
-    def __init__(self, in_channels, out_channels, emb_dim=256):
-        super().__init__()
-        self.maxpool_conv = nn.Sequential(
-            nn.MaxPool2d(2),
-            DoubleConv(in_channels, in_channels, residual=True),
-            DoubleConv(in_channels, out_channels),
-        )
+	def __init__(self, in_channels, out_channels, emb_dim=256):
+		super().__init__()
+		self.maxpool_conv = nn.Sequential(
+			nn.MaxPool2d(2),
+			DoubleConv(in_channels, in_channels, residual=True),
+			DoubleConv(in_channels, out_channels),
+		)
 
-        self.emb_layer = nn.Sequential(
-            nn.SiLU(),
-            nn.Linear(
-                emb_dim,
-                out_channels
-            ),
-        )
+		self.emb_layer = nn.Sequential(
+			nn.SiLU(),
+			nn.Linear(
+				emb_dim,
+				out_channels
+			),
+		)
 
-    def forward(self, x, t):
-        x = self.maxpool_conv(x)
-        emb = self.emb_layer(t)[:, :, None, None].repeat(1, 1, x.shape[-2], x.shape[-1])
-        return x + emb
+	def forward(self, x, t):
+		x = self.maxpool_conv(x)
+		emb = self.emb_layer(t)[:, :, None, None].repeat(1, 1, x.shape[-2], x.shape[-1])
+		return x + emb
 
 
 class Up(nn.Module):
-    def __init__(self, in_channels, out_channels, emb_dim=256):
-        super().__init__()
+	def __init__(self, in_channels, out_channels, emb_dim=256):
+		super().__init__()
 
-        self.up = nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True)
-        self.conv = nn.Sequential(
-            DoubleConv(in_channels, in_channels, residual=True),
-            DoubleConv(in_channels, out_channels, in_channels // 2),
-        )
+		self.up = nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True)
+		self.conv = nn.Sequential(
+			DoubleConv(in_channels, in_channels, residual=True),
+			DoubleConv(in_channels, out_channels, in_channels // 2),
+		)
 
-        self.emb_layer = nn.Sequential(
-            nn.SiLU(),
-            nn.Linear(
-                emb_dim,
-                out_channels
-            ),
-        )
+		self.emb_layer = nn.Sequential(
+			nn.SiLU(),
+			nn.Linear(
+				emb_dim,
+				out_channels
+			),
+		)
 
-    def forward(self, x, skip_x, t):
-        x = self.up(x)
-        x = torch.cat([skip_x, x], dim=1)
-        x = self.conv(x)
-        emb = self.emb_layer(t)[:, :, None, None].repeat(1, 1, x.shape[-2], x.shape[-1])
-        return x + emb
+	def forward(self, x, skip_x, t):
+		x = self.up(x)
+		x = torch.cat([skip_x, x], dim=1)
+		x = self.conv(x)
+		emb = self.emb_layer(t)[:, :, None, None].repeat(1, 1, x.shape[-2], x.shape[-1])
+		return x + emb
 
 
 class UNet(nn.Module):
-    def __init__(self, c_in=3, c_out=3, time_dim=256, remove_deep_conv=False):
-        super().__init__()
-        self.time_dim = time_dim
-        self.remove_deep_conv = remove_deep_conv
-        self.inc = DoubleConv(c_in, 64)
-        self.down1 = Down(64, 128)
-        self.sa1 = SelfAttention(128)
-        self.down2 = Down(128, 256)
-        self.sa2 = SelfAttention(256)
-        self.down3 = Down(256, 256)
-        self.sa3 = SelfAttention(256)
+	def __init__(self, c_in=3, c_out=3, time_dim=256, remove_deep_conv=False):
+		super().__init__()
+		self.time_dim = time_dim
+		self.remove_deep_conv = remove_deep_conv
+		self.inc = DoubleConv(c_in, 64)
+		self.down1 = Down(64, 128)
+		self.sa1 = SelfAttention(128)
+		self.down2 = Down(128, 256)
+		self.sa2 = SelfAttention(256)
+		self.down3 = Down(256, 256)
+		self.sa3 = SelfAttention(256)
 
 
-        if remove_deep_conv:
-            self.bot1 = DoubleConv(256, 256)
-            self.bot3 = DoubleConv(256, 256)
-        else:
-            self.bot1 = DoubleConv(256, 512)
-            self.bot2 = DoubleConv(512, 512)
-            self.bot3 = DoubleConv(512, 256)
+		if remove_deep_conv:
+			self.bot1 = DoubleConv(256, 256)
+			self.bot3 = DoubleConv(256, 256)
+		else:
+			self.bot1 = DoubleConv(256, 512)
+			self.bot2 = DoubleConv(512, 512)
+			self.bot3 = DoubleConv(512, 256)
 
-        self.up1 = Up(512, 128)
-        self.sa4 = SelfAttention(128)
-        self.up2 = Up(256, 64)
-        self.sa5 = SelfAttention(64)
-        self.up3 = Up(128, 64)
-        self.sa6 = SelfAttention(64)
-        self.outc = nn.Conv2d(64, c_out, kernel_size=1)
+		self.up1 = Up(512, 128)
+		self.sa4 = SelfAttention(128)
+		self.up2 = Up(256, 64)
+		self.sa5 = SelfAttention(64)
+		self.up3 = Up(128, 64)
+		self.sa6 = SelfAttention(64)
+		self.outc = nn.Conv2d(64, c_out, kernel_size=1)
 
-    def pos_encoding(self, t, channels):
-        inv_freq = 1.0 / (
-            10000
-            ** (torch.arange(0, channels, 2, device=one_param(self).device).float() / channels)
-        )
-        pos_enc_a = torch.sin(t.repeat(1, channels // 2) * inv_freq)
-        pos_enc_b = torch.cos(t.repeat(1, channels // 2) * inv_freq)
-        pos_enc = torch.cat([pos_enc_a, pos_enc_b], dim=-1)
-        return pos_enc
+	def pos_encoding(self, t, channels):
+		inv_freq = 1.0 / (
+			10000
+			** (torch.arange(0, channels, 2, device=one_param(self).device).float() / channels)
+		)
+		pos_enc_a = torch.sin(t.repeat(1, channels // 2) * inv_freq)
+		pos_enc_b = torch.cos(t.repeat(1, channels // 2) * inv_freq)
+		pos_enc = torch.cat([pos_enc_a, pos_enc_b], dim=-1)
+		return pos_enc
 
-    def unet_forwad(self, x, t):
-        x1 = self.inc(x)
-        x2 = self.down1(x1, t)
-        x2 = self.sa1(x2)
-        x3 = self.down2(x2, t)
-        x3 = self.sa2(x3)
-        x4 = self.down3(x3, t)
-        x4 = self.sa3(x4)
+	def unet_forwad(self, x, t):
+		x1 = self.inc(x)
+		x2 = self.down1(x1, t)
+		x2 = self.sa1(x2)
+		x3 = self.down2(x2, t)
+		x3 = self.sa2(x3)
+		x4 = self.down3(x3, t)
+		x4 = self.sa3(x4)
 
-        x4 = self.bot1(x4)
-        if not self.remove_deep_conv:
-            x4 = self.bot2(x4)
-        x4 = self.bot3(x4)
+		x4 = self.bot1(x4)
+		if not self.remove_deep_conv:
+			x4 = self.bot2(x4)
+		x4 = self.bot3(x4)
 
-        x = self.up1(x4, x3, t)
-        x = self.sa4(x)
-        x = self.up2(x, x2, t)
-        x = self.sa5(x)
-        x = self.up3(x, x1, t)
-        x = self.sa6(x)
-        output = self.outc(x)
-        return output
-    
-    def forward(self, x, t):
-        t = t.unsqueeze(-1)
-        t = self.pos_encoding(t, self.time_dim)
-        return self.unet_forwad(x, t)
+		x = self.up1(x4, x3, t)
+		x = self.sa4(x)
+		x = self.up2(x, x2, t)
+		x = self.sa5(x)
+		x = self.up3(x, x1, t)
+		x = self.sa6(x)
+		output = self.outc(x)
+		return output
+	
+	def forward(self, x, t):
+		t = t.unsqueeze(-1)
+		t = self.pos_encoding(t, self.time_dim)
+		return self.unet_forwad(x, t)
 
 
 class UNet_conditional(UNet):
-    def __init__(self, c_in=3, c_out=3, time_dim=256, num_classes=None, **kwargs):
-        super().__init__(c_in, c_out, time_dim, **kwargs)
-        if num_classes is not None:
-            self.label_emb = nn.Embedding(num_classes, time_dim)
+	def __init__(self, c_in=3, c_out=3, time_dim=256, num_classes=None, **kwargs):
+		super().__init__(c_in, c_out, time_dim, **kwargs)
+		if num_classes is not None:
+			self.label_emb = nn.Embedding(num_classes, time_dim)
 
-    def forward(self, x, t, y=None):
-        t = t.unsqueeze(-1)
-        t = self.pos_encoding(t, self.time_dim)
+	def forward(self, x, t, y=None):
+		t = t.unsqueeze(-1)
+		t = self.pos_encoding(t, self.time_dim)
 
-        if y is not None:
-            t += self.label_emb(y)
+		if y is not None:
+			t += self.label_emb(y)
 
-        return self.unet_forwad(x, t)
-    
-
-config = SimpleNamespace(    
-    run_name = "DDPM_conditional",
-    epochs = 100,
-    noise_steps=1000,
-    seed = 42,
-    version = 2,	
-    batch_size = 10,
-    img_size = 64,
-    num_classes = 10,
-    dataset_path = "datasets",
-    train_folder = "train",
-    val_folder = "test",
-    device = "cuda",
-    slice_size = 1,
-    do_validation = True,
-    fp16 = True,
-    log_every_epoch = 20,
-    num_workers=10,
-    lr = 5e-3)
+		return self.unet_forwad(x, t)
 
 
 logging.basicConfig(format="%(asctime)s - %(levelname)s: %(message)s", level=logging.INFO, datefmt="%I:%M:%S")
 
 
 class Diffusion:
-    def __init__(self, noise_steps=1000, beta_start=1e-4, beta_end=0.02, img_size=256, num_classes=10, c_in=3, c_out=3, device="cuda", version=2, **kwargs):
-        self.noise_steps = noise_steps
-        self.beta_start = beta_start
-        self.beta_end = beta_end
+	def __init__(self, noise_steps=1000, beta_start=1e-4, beta_end=0.02, img_size=256, num_classes=10, c_in=3, c_out=3, device="cuda", version=2, tpath = '/content/drive/MyDrive/MobileGen_csc2231/weights/conditional_ema_ckpt.pt',**kwargs):
+		self.noise_steps = noise_steps
+		self.beta_start = beta_start
+		self.beta_end = beta_end
 
-        self.beta = self.prepare_noise_schedule().to(device)
-        self.alpha = 1. - self.beta
-        self.alpha_hat = torch.cumprod(self.alpha, dim=0)
+		self.beta = self.prepare_noise_schedule().to(device)
+		self.alpha = 1. - self.beta
+		self.alpha_hat = torch.cumprod(self.alpha, dim=0)
 
-        self.img_size = img_size
-        self.model = UNet_conditional(c_in, c_out, num_classes=num_classes, **kwargs).to(device)
+		self.img_size = img_size
+		self.model = UNet_conditional(c_in, c_out, num_classes=num_classes, **kwargs).to(device)
 		if version == 2:
 			self.student_mod = UNet_conditional_student_v2(c_in, c_out, num_classes=num_classes,**kwargs).to(device)
 		elif version == 1:
 			self.student_mod = UNet_conditional_student_v1(c_in, c_out, num_classes=num_classes,**kwargs).to(device)
-	        
+			
 		self.ema_model = copy.deepcopy(self.student_mod).eval().requires_grad_(False)
-        self.device = device
-        self.c_in = c_in
-        self.num_classes = num_classes
+		self.device = device
+		self.c_in = c_in
+		self.num_classes = num_classes
+		self.tpath = tpath
 
-    def prepare_noise_schedule(self):
-        return torch.linspace(self.beta_start, self.beta_end, self.noise_steps)
-    
-    def sample_timesteps(self, n):
-        return torch.randint(low=1, high=self.noise_steps, size=(n,))
+	def prepare_noise_schedule(self):
+		return torch.linspace(self.beta_start, self.beta_end, self.noise_steps)
+	
+	def sample_timesteps(self, n):
+		return torch.randint(low=1, high=self.noise_steps, size=(n,))
 
-    def noise_images(self, x, t):
-        "Add noise to images at instant t"
-        sqrt_alpha_hat = torch.sqrt(self.alpha_hat[t])[:, None, None, None]
-        sqrt_one_minus_alpha_hat = torch.sqrt(1 - self.alpha_hat[t])[:, None, None, None]
-        Ɛ = torch.randn_like(x)
-        return sqrt_alpha_hat * x + sqrt_one_minus_alpha_hat * Ɛ, Ɛ
-    
-    @torch.inference_mode()
-    def sample(self, use_ema, labels, cfg_scale=3):
-        model = self.ema_model if use_ema else self.student_mod
-        n = len(labels)
-        logging.info(f"Sampling {n} new images....")
-        model.eval()
-        with torch.inference_mode():
-            x = torch.randn((n, self.c_in, self.img_size, self.img_size)).to(self.device)
-            for i in progress_bar(reversed(range(1, self.noise_steps)), total=self.noise_steps-1, leave=False):
-                t = (torch.ones(n) * i).long().to(self.device)
-                predicted_noise = model(x, t, labels)
-                if cfg_scale > 0:
-                    uncond_predicted_noise = model(x, t, None)
-                    predicted_noise = torch.lerp(uncond_predicted_noise, predicted_noise, cfg_scale)
-                alpha = self.alpha[t][:, None, None, None]
-                alpha_hat = self.alpha_hat[t][:, None, None, None]
-                beta = self.beta[t][:, None, None, None]
-                if i > 1:
-                    noise = torch.randn_like(x)
-                else:
-                    noise = torch.zeros_like(x)
-                x = 1 / torch.sqrt(alpha) * (x - ((1 - alpha) / (torch.sqrt(1 - alpha_hat))) * predicted_noise) + torch.sqrt(beta) * noise
-        x = (x.clamp(-1, 1) + 1) / 2
-        x = (x * 255).type(torch.uint8)
-        return x
+	def noise_images(self, x, t):
+		"Add noise to images at instant t"
+		sqrt_alpha_hat = torch.sqrt(self.alpha_hat[t])[:, None, None, None]
+		sqrt_one_minus_alpha_hat = torch.sqrt(1 - self.alpha_hat[t])[:, None, None, None]
+		Ɛ = torch.randn_like(x)
+		return sqrt_alpha_hat * x + sqrt_one_minus_alpha_hat * Ɛ, Ɛ
+	
+	@torch.inference_mode()
+	def sample(self, use_ema, labels, cfg_scale=3):
+		model = self.ema_model if use_ema else self.student_mod
+		n = len(labels)
+		logging.info(f"Sampling {n} new images....")
+		model.eval()
+		with torch.inference_mode():
+			x = torch.randn((n, self.c_in, self.img_size, self.img_size)).to(self.device)
+			for i in progress_bar(reversed(range(1, self.noise_steps)), total=self.noise_steps-1, leave=False):
+				t = (torch.ones(n) * i).long().to(self.device)
+				predicted_noise = model(x, t, labels)
+				if cfg_scale > 0:
+					uncond_predicted_noise = model(x, t, None)
+					predicted_noise = torch.lerp(uncond_predicted_noise, predicted_noise, cfg_scale)
+				alpha = self.alpha[t][:, None, None, None]
+				alpha_hat = self.alpha_hat[t][:, None, None, None]
+				beta = self.beta[t][:, None, None, None]
+				if i > 1:
+					noise = torch.randn_like(x)
+				else:
+					noise = torch.zeros_like(x)
+				x = 1 / torch.sqrt(alpha) * (x - ((1 - alpha) / (torch.sqrt(1 - alpha_hat))) * predicted_noise) + torch.sqrt(beta) * noise
+		x = (x.clamp(-1, 1) + 1) / 2
+		x = (x * 255).type(torch.uint8)
+		return x
 
-    def train_step(self, loss):
-        self.optimizer.zero_grad()
-        self.scaler.scale(loss).backward()
-        self.scaler.step(self.optimizer)
-        self.scaler.update()
-        self.ema.step_ema(self.ema_model, self.student_mod)
-        self.scheduler.step()
+	def train_step(self, loss):
+		self.optimizer.zero_grad()
+		self.scaler.scale(loss).backward()
+		self.scaler.step(self.optimizer)
+		self.scaler.update()
+		self.ema.step_ema(self.ema_model, self.student_mod)
+		self.scheduler.step()
 
-    def load_teacher(self,path):
+	def load_teacher(self, path):
 		
 		to_load = torch.load(path)
 		self.model.load_state_dict(to_load)
@@ -406,22 +386,22 @@ class Diffusion:
 		
 		return self.model
 
-    def one_epoch(self, train=True):
-        avg_loss = 0.
-        
+	def one_epoch(self, train=True):
+		avg_loss = 0.
+		
 		if train: self.student_mod.train()
-        else: self.student_mod.eval()
+		else: self.student_mod.eval()
 		
-        pbar = progress_bar(self.train_dataloader, leave=False)
+		#pbar = progress_bar(self.train_dataloader, leave=False)
 		
-		teacher_mod = self.load_teacher(tpath)
+		teacher_mod = self.load_teacher(self.tpath)
 		
-        for i, (images, labels) in enumerate(pbar):
+		for i, (images, labels) in enumerate(self.train_dataloader):
 			
 			images = images.to(self.device)
-            labels = labels.to(self.device)
+			labels = labels.to(self.device)
 			t = self.sample_timesteps(images.shape[0]).to(self.device)
-            x_t, noise = self.noise_images(images, t)
+			x_t, noise = self.noise_images(images, t)
 		
 			if np.random.random() < 0.1:
 				labels = None
@@ -429,103 +409,130 @@ class Diffusion:
 			with torch.no_grad():
 				teacher_noise = self.model(x_t,t,labels)
 			
-            with torch.autocast("cuda") and (torch.inference_mode() if not train else torch.enable_grad()):
-                
-                predicted_noise = self.student_mod(x_t, t, labels)
-                loss = self.mse(noise, predicted_noise) + self.mse(teacher_noise, predicted_noise)
+			with torch.autocast("cuda") and (torch.inference_mode() if not train else torch.enable_grad()):
 				
-                avg_loss += loss
+				predicted_noise = self.student_mod(x_t, t, labels)
+				loss = self.mse(noise, predicted_noise) + self.mse(teacher_noise, predicted_noise)
+				
+				avg_loss += loss
 			
 			
-            if train:
-                self.train_step(loss)
-                wandb.log({"train_mse": loss.item(),
-                            "learning_rate": self.scheduler.get_last_lr()[0]})
-            pbar.comment = f"MSE={loss.item():2.3f}"        
-        return avg_loss.mean().item()
+			if train:
+				self.train_step(loss)
+				wandb.log({"train_mse": loss.item(),
+							"learning_rate": self.scheduler.get_last_lr()[0]})
+			#pbar.comment = f"MSE={loss.item():2.3f}"
+		print(f"MSE={loss.item():2.3f}")
+		return avg_loss.mean().item()
 
-    def log_images(self):
-        "Log images to wandb and save them to disk"
-        labels = torch.arange(self.num_classes).long().to(self.device)
-        sampled_images = self.sample(use_ema=False, labels=labels)
-        wandb.log({"sampled_images":     [wandb.Image(img.permute(1,2,0).squeeze().cpu().numpy()) for img in sampled_images]})
+	def log_images(self):
+		"Log images to wandb and save them to disk"
+		labels = torch.arange(self.num_classes).long().to(self.device)
+		sampled_images = self.sample(use_ema=False, labels=labels)
+		wandb.log({"sampled_images":     [wandb.Image(img.permute(1,2,0).squeeze().cpu().numpy()) for img in sampled_images]})
 
-        # EMA model sampling
-        ema_sampled_images = self.sample(use_ema=True, labels=labels)
-        plot_images(sampled_images)  #to display on jupyter if available
-        wandb.log({"ema_sampled_images": [wandb.Image(img.permute(1,2,0).squeeze().cpu().numpy()) for img in ema_sampled_images]})
+		# EMA model sampling
+		ema_sampled_images = self.sample(use_ema=True, labels=labels)
+		plot_images(sampled_images)  #to display on jupyter if available
+		wandb.log({"ema_sampled_images": [wandb.Image(img.permute(1,2,0).squeeze().cpu().numpy()) for img in ema_sampled_images]})
 
-    def load(self, model_cpkt_path, model_ckpt="ckpt.pt", ema_model_ckpt="ema_ckpt.pt"):
-        self.student_mod.load_state_dict(torch.load(os.path.join(model_cpkt_path, model_ckpt)))
-        self.ema_model.load_state_dict(torch.load(os.path.join(model_cpkt_path, ema_model_ckpt)))
+	def load(self, model_cpkt_path, model_ckpt="ckpt.pt", ema_model_ckpt="ema_ckpt.pt"):
+		self.student_mod.load_state_dict(torch.load(os.path.join(model_cpkt_path, model_ckpt)))
+		self.ema_model.load_state_dict(torch.load(os.path.join(model_cpkt_path, ema_model_ckpt)))
 
-    def save_model(self, run_name, epoch=-1):
-        "Save model locally and on wandb"
-        torch.save(self.student_mod.state_dict(), os.path.join("models", run_name, f"student_ckpt.pt"))
-        torch.save(self.ema_model.state_dict(), os.path.join("models", run_name, f"ema_student_ckpt.pt"))
-        torch.save(self.optimizer.state_dict(), os.path.join("models", run_name, f"optim_student.pt"))
-        at = wandb.Artifact("model", type="model", description="Model weights for DDPM conditional", metadata={"epoch": epoch})
-        at.add_dir(os.path.join("models", run_name))
-        wandb.log_artifact(at)
+	def save_model(self, run_name, epoch=-1):
+		"Save model locally and on wandb"
+		torch.save(self.student_mod.state_dict(), os.path.join("models", run_name, f"student_ckpt.pt"))
+		torch.save(self.ema_model.state_dict(), os.path.join("models", run_name, f"ema_student_ckpt.pt"))
+		torch.save(self.optimizer.state_dict(), os.path.join("models", run_name, f"optim_student.pt"))
+		at = wandb.Artifact("model", type="model", description="Model weights for DDPM conditional", metadata={"epoch": epoch})
+		at.add_dir(os.path.join("models", run_name))
+		wandb.log_artifact(at)
 
-    def prepare(self, args):
-        mk_folders(args.run_name)
-        self.train_dataloader, self.val_dataloader = get_data(args)
-        self.optimizer = optim.AdamW(self.student_mod.parameters(), lr=args.lr, eps=1e-5)
-        self.scheduler = optim.lr_scheduler.OneCycleLR(self.optimizer, max_lr=args.lr, 
-                                                 steps_per_epoch=len(self.train_dataloader), epochs=args.epochs)
-        self.mse = nn.MSELoss()
-        self.ema = EMA(0.995)
-        self.scaler = torch.cuda.amp.GradScaler()
+	def prepare(self):
+		mk_folders(config['run_name'])
+		self.train_dataloader, self.val_dataloader = get_data()
+		self.optimizer = optim.AdamW(self.student_mod.parameters(), lr=config['lr'], eps=1e-5)
+		self.scheduler = optim.lr_scheduler.OneCycleLR(self.optimizer, max_lr=config['lr'], 
+												 steps_per_epoch=len(self.train_dataloader), epochs=config['epochs'])
+		self.mse = nn.MSELoss()
+		self.ema = EMA(0.995)
+		self.scaler = torch.cuda.amp.GradScaler()
 
-    def fit(self, args):
-        for epoch in progress_bar(range(args.epochs), total=args.epochs, leave=True):
-            logging.info(f"Starting epoch {epoch}:")
-            _  = self.one_epoch(train=True)
-            
-            ## validation
-            if args.do_validation:
-                avg_loss = self.one_epoch(train=False)
-                wandb.log({"val_mse": avg_loss})
-            
-            # log predicitons
-            if epoch % args.log_every_epoch == 0:
-                self.log_images()
+	def fit(self):
+		for epoch in tqdm(range(config['epochs'])):
+			logging.info(f"Starting epoch {epoch}:")
+			print(f"Starting epoch {epoch}:")
+			_  = self.one_epoch(train=True)
+			
+			## validation
+			if config['do_validation']:
+				avg_loss = self.one_epoch(train=False)
+				wandb.log({"val_mse": avg_loss})
+			
+			# log predicitons
+			if epoch % config['log_every_epoch'] == 0:
+				self.log_images()
 
-            # save model
-            self.save_model(run_name=args.run_name, epoch=epoch)     
+			# save model
+			self.save_model(run_name=config['run_name'], epoch=epoch)     
 
 
 
-
+'''
 def parse_args(config):
-    parser = argparse.ArgumentParser(description='Process hyper-parameters')
-    parser.add_argument('--run_name', type=str, default=config.run_name, help='name of the run')
-    parser.add_argument('--epochs', type=int, default=config.epochs, help='number of epochs')
-    parser.add_argument('--seed', type=int, default=config.seed, help='random seed')
-    parser.add_argument('--batch_size', type=int, default=config.batch_size, help='batch size')
-    parser.add_argument('--img_size', type=int, default=config.img_size, help='image size')
-    parser.add_argument('--num_classes', type=int, default=config.num_classes, help='number of classes')
-    parser.add_argument('--dataset_path', type=str, default=config.dataset_path, help='path to dataset')
-    parser.add_argument('--device', type=str, default=config.device, help='device')
-    parser.add_argument('--lr', type=float, default=config.lr, help='learning rate')
-    parser.add_argument('--slice_size', type=int, default=config.slice_size, help='slice size')
-    parser.add_argument('--noise_steps', type=int, default=config.noise_steps, help='noise steps')
-    parser.add_argument('--version', type=int, default=config.version, help='compressed version 1/2')
-    args = vars(parser.parse_args())
-    
-    # update config with parsed args
-    for k, v in args.items():
-        setattr(config, k, v)
+	parser = argparse.ArgumentParser(description='Process hyper-parameters')
+	parser.add_argument('--run_name', type=str, default=config.run_name, help='name of the run')
+	parser.add_argument('--epochs', type=int, default=config.epochs, help='number of epochs')
+	parser.add_argument('--seed', type=int, default=config.seed, help='random seed')
+	parser.add_argument('--batch_size', type=int, default=config.batch_size, help='batch size')
+	parser.add_argument('--img_size', type=int, default=config.img_size, help='image size')
+	parser.add_argument('--num_classes', type=int, default=config.num_classes, help='number of classes')
+	parser.add_argument('--dataset_path', type=str, default=config.dataset_path, help='path to dataset')
+	parser.add_argument('--device', type=str, default=config.device, help='device')
+	parser.add_argument('--lr', type=float, default=config.lr, help='learning rate')
+	parser.add_argument('--slice_size', type=int, default=config.slice_size, help='slice size')
+	parser.add_argument('--noise_steps', type=int, default=config.noise_steps, help='noise steps')
+	parser.add_argument('--version', type=int, default=config.version, help='compressed version 1/2')
+	args = vars(parser.parse_args())
+	
+	# update config with parsed args
+	for k, v in args.items():
+		setattr(config, k, v)
 
+'''
+
+
+
+config = {'run_name': "DDPM_conditional",
+	'epochs': 100,
+	'noise_steps': 1000,
+	'seed' : 42,
+	'version' : 2,	
+	'batch_size' : 10,
+	'img_size' : 64,
+	'num_classes' : 10,
+	'tpath' : "/content/drive/MyDrive/MobileGen_csc2231/weights/conditional_ema_ckpt.pt",
+	'dataset_path' : "/content/drive/MyDrive/MobileGen_csc2231/data/cifar10-64/",
+	'train_folder' : "train",
+	'val_folder' : "test",
+	'device' : "cuda",
+	'slice_size' : 1,
+	'do_validation' : True,
+	'fp16' : True,
+	'log_every_epoch' : 20,
+	'num_workers':10,
+	'lr': 5e-3}
 
 if __name__ == '__main__':
-    parse_args(config)
+	#parse_args(config)
+	
+	## seed everything
+	set_seed(config['seed'])
+	
+	
 
-    ## seed everything
-    set_seed(config.seed)
-
-    diffuser = Diffusion(config.noise_steps, img_size=config.img_size, num_classes=config.num_classes, version=config.version)
-    with wandb.init(project="train_sd", group="train", config=config):
-        diffuser.prepare(config)
-        diffuser.fit(config)
+	diffuser = Diffusion(config['noise_steps'], img_size=config['img_size'], num_classes=config['num_classes'], version=config['version'], tpath = config['tpath'])
+	with wandb.init(project="train_sd", group="train", config=config):
+		diffuser.prepare()
+		diffuser.fit()
