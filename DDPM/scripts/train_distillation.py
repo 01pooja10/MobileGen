@@ -304,7 +304,6 @@ class UNet_conditional(UNet):
 
 		return self.unet_forwad(x, t)
 
-
 logging.basicConfig(format="%(asctime)s - %(levelname)s: %(message)s", level=logging.INFO, datefmt="%I:%M:%S")
 
 
@@ -471,11 +470,11 @@ class Diffusion:
 				wandb.log({"val_mse": avg_loss})
 			
 			# log predicitons
-			if epoch % config['log_every_epoch'] == 0:
+			if epoch % 2 == 0:
 				self.log_images()
 
-			# save model
-			self.save_model(run_name=config['run_name'], epoch=epoch)     
+			if epoch % config['log_every_epoch'] == 0:
+				self.save_model(run_name=config['run_name'], epoch=epoch)     
 
 
 
