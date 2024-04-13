@@ -124,8 +124,8 @@ class UNet_student_v2(nn.Module):
             self.bot1 = DoubleConv(256, 256)
             self.bot3 = DoubleConv(256, 256)
         else:
-            self.bot1 = DoubleConv(256, 512)
-            self.bot2 = DoubleConv(512, 256)
+            self.bot1 = DoubleConv(256, 256)
+            #self.bot2 = DoubleConv(512, 256)
             self.bot3 = DoubleConv(256,128)
 
         self.up1 = Up(512, 128)
@@ -164,7 +164,7 @@ class UNet_student_v2(nn.Module):
         x4 = self.bot1(x3)
         #print("Input size after bottle1 :",x4.size())
         
-        x4 = self.bot2(x4)
+        #x4 = self.bot2(x4)
         #print("Input size after bottle2 :",x4.size())
         
         x4 = self.bot3(x4)
@@ -206,7 +206,7 @@ class UNet_conditional_student_v2(UNet_student_v2):
         return self.unet_forward(x, t)
 
 
-
+'''
 def test_time():
     
     device = 'cuda'
@@ -221,3 +221,4 @@ def test_time():
     print("Time taken:", (end1-st1))
     
 #test_time()
+'''
