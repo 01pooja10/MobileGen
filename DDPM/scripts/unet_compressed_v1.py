@@ -108,7 +108,7 @@ class Up(nn.Module):
 
 
 class UNet_student_v1(nn.Module):
-    def __init__(self, c_in=3, c_out=3, time_dim=256, remove_deep_conv=False):
+    def __init__(self, c_in=3, c_out=3, time_dim=256, remove_deep_conv=True):
         super().__init__()
         self.time_dim = time_dim
         self.remove_deep_conv = remove_deep_conv
@@ -148,44 +148,34 @@ class UNet_student_v1(nn.Module):
         return pos_enc
 
     def unet_forward(self, x, t):
-        print("Input size:",x.size())
+        #print("Input size:",x.size())
         x1 = self.inc(x)
-        print("Input size after inc1 :",x1.size())
+        #print("Input size after inc1 :",x1.size())
         x2 = self.down1(x1, t)
-        print("Input size after down1 :",x2.size())
+        #print("Input size after down1 :",x2.size())
         x2 = self.sa1(x2)
-        print("Input size after sa1 :",x2.size())
+        #print("Input size after sa1 :",x2.size())
         x3 = self.down2(x2, t)
-        print("Input size after down2 :",x3.size())
+        #print("Input size after down2 :",x3.size())
         x3 = self.sa2(x3)
-        print("Input size after sa2 :",x3.size())
+        #print("Input size after sa2 :",x3.size())
         x4 = self.down3(x3, t)
-        print("Input size after down3 :",x4.size())
+        #print("Input size after down3 :",x4.size())
         x4 = self.sa3(x4)
-        print("Input size after sa3 :",x4.size())
+        #print("Input size after sa3 :",x4.size())
 
         x4 = self.bot1(x4)
-        print("Input size after bottle1 :",x4.size())
-        if not self.remove_deep_conv:
-            x4 = self.bot2(x4)
-            print("Input size after bottle2 :",x4.size())
+        # if not self.remove_deep_conv:
+        #     x4 = self.bot2(x4)
         #x4 = self.bot3(x4)
-        print("Input size after bottle3 :",x4.size())
 
         x = self.up1(x4, x3, t)
-        print("Input size after up1 :",x.size())
         x = self.sa4(x)
-        print("Input size after sa4 :",x.size())
         x = self.up2(x, x2, t)
-        print("Input size after up2 :",x.size())
         x = self.sa5(x)
-        print("Input size after sa5 :",x.size())
         x = self.up3(x, x1, t)
-        print("Input size after up3 :",x.size())
         x = self.sa6(x)
-        print("Input size after sa6 :",x.size())
         output = self.outc(x)
-        print("Ouput size :",output.size())
         return output
     
     def forward(self, x, t):
@@ -208,6 +198,7 @@ class UNet_conditional_student_v1(UNet_student_v1):
 
         return self.unet_forward(x, t)
 
+'''
 def test_time():
     
     device = 'cuda'
@@ -226,3 +217,4 @@ def test_time():
     print("Time:", (end1-st1))
     
 test_time()
+'''
