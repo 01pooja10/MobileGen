@@ -1,3 +1,32 @@
+import time
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.mobile_optimizer import optimize_for_mobile
+
+import warnings
+warnings.filterwarnings("ignore")
+
+import copy
+from tqdm import tqdm
+import matplotlib.pyplot as plt
+from torch.nn.utils import prune
+from torch.ao.quantization import quantize_dynamic, QuantStub, DeQuantStub, fuse_modules, get_default_qconfig, get_default_qconfig_mapping,QConfigMapping
+from torch.ao.quantization.quantize_fx import prepare_fx, convert_fx, fuse_fx
+
+import argparse, logging, copy
+from types import SimpleNamespace
+from contextlib import nullcontext
+
+import torch
+from torch import optim
+import numpy as np
+
+import cv2
+import torch.nn.functional as F
+import wandb
+
+
 class Diffusion:
 	def __init__(self, noise_steps=1000, beta_start=1e-4, beta_end=0.02, img_size=256, num_classes=10, c_in=3, c_out=3, device="cuda", **kwargs):
 		self.noise_steps = noise_steps
@@ -71,7 +100,7 @@ class Diffusion:
 			if 'weight' in param_name:  
 				new_name = param_name.replace(".", "_")
 				quantized_weights = self.find_weights(param.data, bits=8)
-				setattr(pruned_model, new_name, param)
+				setattr(model, new_name, param)
 		
 		return model
 
@@ -108,10 +137,10 @@ class Diffusion:
 		return x
 
 	#new method to analyze time
-	def analyze_time(self, model):
+	def analyze_time(self, model, inp, t, y):
 		with profile(activities=[ProfilerActivity.CUDA], record_shapes=True) as prof:
 			with record_function("model_inference"):
-				model(x=ex_inp,t=t,y=y)
+				model(x=inp,t=t,y=y)
 		print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
 		
 
