@@ -108,7 +108,7 @@ class Diffusion:
 		return x
 
 	#new method to analyze time
-	def analyze_time(model):
+	def analyze_time(self, model):
 		with profile(activities=[ProfilerActivity.CUDA], record_shapes=True) as prof:
 			with record_function("model_inference"):
 				model(x=ex_inp,t=t,y=y)
