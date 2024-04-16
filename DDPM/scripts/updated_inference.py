@@ -1,9 +1,6 @@
 import warnings
 warnings.filterwarnings("ignore")
 
-import warnings
-warnings.filterwarnings("ignore")
-
 import argparse, logging, copy
 from types import SimpleNamespace
 from contextlib import nullcontext
