@@ -26,9 +26,18 @@ import cv2
 import torch.nn.functional as F
 import wandb
 
+from unet_compressed_v1 import UNet_conditional_student_v1
+from unet_compressed_v2 import UNet_conditional_student_v2
+
+import random
+
+def pick_image(x, n):
+	i = random.randint(0, n-1)
+	generated_img = x[i].cpu().permute(1, 2, 0)
+	return generated_img
 
 class Diffusion:
-	def __init__(self, noise_steps=1000, beta_start=1e-4, beta_end=0.02, img_size=256, num_classes=10, c_in=3, c_out=3, device="cuda", **kwargs):
+	def __init__(self, noise_steps=1000, beta_start=1e-4, beta_end=0.02, img_size=256, num_classes=10, c_in=3, c_out=3, device="cuda", version=1, **kwargs):
 		self.noise_steps = noise_steps
 		self.beta_start = beta_start
 		self.beta_end = beta_end
@@ -38,6 +47,10 @@ class Diffusion:
 		self.alpha_hat = torch.cumprod(self.alpha, dim=0)
 
 		self.img_size = img_size
+		if self.version==1:
+			self.model = UNet_conditional_student_v1(c_in, c_out, num_classes=num_classes,**kwargs).to(device)
+		elif self.version==2:
+			self.model = UNet_conditional_student_v2(c_in, c_out, num_classes=num_classes,**kwargs).to(device)
 		self.model = UNet_conditional_student_v2(c_in, c_out, num_classes=num_classes,**kwargs).to(device)
 		self.ema_model = copy.deepcopy(self.model).eval().requires_grad_(False)
 		self.device = device
@@ -163,3 +176,5 @@ class Diffusion:
 		#out = ilist.permute(1, 2, 0).cpu()
 		
 		return ilist
+
+	
