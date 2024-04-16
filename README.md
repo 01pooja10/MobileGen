@@ -40,12 +40,19 @@ The flowchart below depicts the overall flow of data (images and labels) between
 
 ## Contributor
 
+## Contributors
+
+
+<table align="center">
+<tr align="center">
+
+
 <td width:25%>
 
 Pooja Ravi
 
 <p align="center">
-<img src = "https://avatars3.githubusercontent.com/u/66198904?s=460&u=06bd3edde2858507e8c42569d76d61b3491243ad&v=4"  height="120" alt="Pooja Ravi">
+<img src = "https://avatars3.githubusercontent.com/u/66198904?s=460&u=06bd3edde2858507e8c42569d76d61b3491243ad&v=4"  height="120" alt="Ansh Sharma">
 </p>
 <p align="center">
 <a href = "https://github.com/01pooja10"><img src = "http://www.iconninja.com/files/241/825/211/round-collaboration-social-github-code-circle-network-icon.svg" width="36" height = "36"/></a>
@@ -57,11 +64,10 @@ Pooja Ravi
 
 
 <td width:25%>
-
 Aneri Gandhi
 
 <p align="center">
-<img src = "https://avatars3.githubusercontent.com/u/66198904?s=460&u=06bd3edde2858507e8c42569d76d61b3491243ad&v=4"  height="120" alt="Pooja Ravi">
+<img src = "https://avatars1.githubusercontent.com/u/20011207?s=400&u=7570f3915eca3bcd55cd72c60038e4f68965db4b&v=4"  height="120" alt="Aneri Gandhi">
 </p>
 <p align="center">
 <a href = "https://github.com/amg10"><img src = "http://www.iconninja.com/files/241/825/211/round-collaboration-social-github-code-circle-network-icon.svg" width="36" height = "36"/></a>
@@ -73,19 +79,21 @@ Aneri Gandhi
 
 
 <td width:25%>
-
 Sruthi Srinivasan
 
 <p align="center">
-<img src = "https://avatars3.githubusercontent.com/u/66198904?s=460&u=06bd3edde2858507e8c42569d76d61b3491243ad&v=4"  height="120" alt="Pooja Ravi">
+<img src = "https://avatars1.githubusercontent.com/u/20011207?s=400&u=7570f3915eca3bcd55cd72c60038e4f68965db4b&v=4"  height="120" alt="Aneri Gandhi">
 </p>
 <p align="center">
 <a href = "https://github.com/sruthi0107"><img src = "http://www.iconninja.com/files/241/825/211/round-collaboration-social-github-code-circle-network-icon.svg" width="36" height = "36"/></a>
-<a href = "[https://www.linkedin.com/in/pooja-ravi-9b88861b2/](https://www.linkedin.com/in/sruthi-srinivasan/)">
+<a href = "https://www.linkedin.com/in/sruthi-srinivasan/">
 <img src = "http://www.iconninja.com/files/863/607/751/network-linkedin-social-connection-circular-circle-media-icon.svg" width="36" height="36"/>
 </a>
 </p>
 </td>
+
+
+</table>
 
 
 ## License
