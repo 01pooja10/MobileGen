@@ -1,7 +1,7 @@
 # MobileGen
 A repository that deploys a diffusion model (DDPM) on mobile devices with sped-up inference and low memory consumption.
 
-##Goals
+## Goals
 - The objective of this project (MobileGen) is to generate images from the CIFAR 10 64x64 dataset given a label to condition the Denoising Diffusion Probabilistic Model  (DDPM).
 
 - An instance of the DDPM model is initialized on a GPU from the cloud server and inference is performed before forwarding the resulting image to a mobile device.
