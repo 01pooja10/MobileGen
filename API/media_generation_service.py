@@ -23,13 +23,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def generate_image(txt: str, n: int):
-    
-    #image_path = "someimg.png"
+def generate_image(txt: str, ver:int):
     
     classes = {'airplane':0, 'auto':1, 'bird':2, 'cat':3, 'deer':4, 'dog':5, 'frog':6, 'horse':7, 'ship':8, 'truck':9}
     label = classes[txt]
-    num_imgs = n
+    num_imgs = 1
     mpath = '/content/ema_student.ckpt'
     
     diffusion = Diffusion()
@@ -48,8 +46,8 @@ def read_root():
     return {"Hello": "World"}
 
 @app.post("/generate_image")
-async def get_image(text: str = Form(...)):
-    image_path = Path(generate_image(text))
+async def get_image(text: str = Form(...), version: int = Form(...)):
+    image_path = Path(generate_image(text, version))
     if not image_path.is_file():
         return {"error": "Image not found on the server"}
     return FileResponse(image_path)
