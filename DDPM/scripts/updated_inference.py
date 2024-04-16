@@ -69,7 +69,7 @@ class Diffusion:
 	#new pruning function - modified
 	def pruning(self, model):
 
-		mod = copy.deepcopy(model).to(device)
+		mod = copy.deepcopy(model).to(self.device)
 		l1_prune = torch.nn.utils.prune.L1Unstructured(0.3)
 
 		for name,module in mod.named_modules():
@@ -116,7 +116,7 @@ class Diffusion:
 		logging.info(f"Sampling {n} new images....")
 		model.eval()
 		model = self.quantize_eval(model)
-		model = self.pruning(model)
+		#model = self.pruning(model)
 
 
 		with torch.inference_mode():
