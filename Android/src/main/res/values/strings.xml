@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">CSC2231ImgGen</string>
+    <string name="action_settings">Settings</string>
+    <!-- Strings used for fragments for navigation -->
+    <string name="first_fragment_label"></string>
+    <string name="second_fragment_label"></string>
+    <string name="generate_text">Generate</string>
+    <string name="previous">Previous</string>
+    <string name="default_hint">Enter</string>
+    <string name="main_title_text">Welcome to CSC2231!!</string>
+    <string name="result_text">Result for %s </string>
+
+    <string name="input_head_text">
+        Enter the prompt for image
+    </string>
+    <string name="version">Version</string>
+</resources>
