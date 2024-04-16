@@ -118,7 +118,7 @@ class Diffusion:
 		logging.info(f"Sampling {n} new images....")
 		model.eval()
 		model = self.quantize_eval(model)
-		model = self.prune(model)
+		#model = self.prune(model)
 
 
 		with torch.inference_mode():
