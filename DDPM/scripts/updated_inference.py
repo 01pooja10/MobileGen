@@ -175,10 +175,10 @@ def infer(obj_class, version):
 	
 	if version==1:
 	    model = UNet_conditional_student_v1(num_classes=10, remove_deep_conv=True).to(device)
-	    ckpt = torch.load("models/v1/ema_student_ckpt.pt")
+	    ckpt = torch.load("/content/drive/MyDrive/csc2231/models/v1/ema_student_ckpt.pt")
 	elif version==2:
 	    model = UNet_conditional_student_v2(num_classes=10, remove_deep_conv=False).to(device)
-	    ckpt = torch.load("models/v2/ema_student_ckpt.pt")
+	    ckpt = torch.load("/content/drive/MyDrive/csc2231/models/v2/ema_student_ckpt.pt")
 	model = model.eval().requires_grad_(False)
 	model.load_state_dict(ckpt)
 	
