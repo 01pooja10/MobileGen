@@ -18,6 +18,11 @@ A repository that deploys a diffusion model (DDPM) on mobile devices with sped-u
       Pruning ensures that certain connections (weights) of layers such as convolutions and Linear layers from our UNet model are sufficiently         
       compressed (pruned) using the L1 unstructed method available through PyTorch.
 
+The link to model weights, and the TFLite model is available and can be accessed [here](https://drive.google.com/drive/folders/1OWXpgdDkLas5HAaJOBuOcPVtY0nZbU4l?usp=drive_link
+).
+
+The link to the CIFAR 64x64 dataset is available [here](https://www.kaggle.com/datasets/joaopauloschuler/cifar10-64x64-resized-via-cai-super-resolution).
+
 ## DDPM Results
  - Version 1
 ![image](https://github.com/01pooja10/MobileGen/assets/66198904/ff71f374-fd37-4c53-a4a0-33712ddb8f7f)
