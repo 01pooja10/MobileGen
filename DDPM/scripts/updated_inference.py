@@ -197,5 +197,5 @@ def infer(obj_class, version):
 	diffusion = Diffusion(img_size=64, device=device, version=version)
 	y = torch.Tensor([obj_class] * n).long().to(device)
 	x = diffusion.sample(model, y, cfg_scale=3)
-	generated_img = x[0].cpu().detach().numpy().permute(1, 2, 0)
+	generated_img = x[0].cpu().permute(1, 2, 0).detach().numpy()
 	return generated_img
