@@ -38,8 +38,6 @@ The flowchart below depicts the overall flow of data (images and labels) between
 ![image](https://github.com/01pooja10/MobileGen/assets/66198904/0c04808c-b6f2-4e02-805a-0acb96c61804)
 
 
-## Contributor
-
 ## Contributors
 
 
@@ -48,7 +46,6 @@ The flowchart below depicts the overall flow of data (images and labels) between
 
 
 <td width:25%>
-
 Pooja Ravi
 
 <p align="center">
