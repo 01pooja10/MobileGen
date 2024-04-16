@@ -476,8 +476,6 @@ class Diffusion:
 			if epoch % config['log_every_epoch'] == 0:
 				self.save_model(run_name=config['run_name'], epoch=epoch)     
 
-
-
 '''
 def parse_args(config):
 	parser = argparse.ArgumentParser(description='Process hyper-parameters')
@@ -500,8 +498,6 @@ def parse_args(config):
 		setattr(config, k, v)
 
 '''
-
-
 
 config = {'run_name': "DDPM_conditional",
 	'epochs': 100,
@@ -529,8 +525,6 @@ if __name__ == '__main__':
 	## seed everything
 	set_seed(config['seed'])
 	
-	
-
 	diffuser = Diffusion(config['noise_steps'], img_size=config['img_size'], num_classes=config['num_classes'], version=config['version'], tpath = config['tpath'])
 	with wandb.init(project="train_sd", group="train", config=config):
 		diffuser.prepare()
