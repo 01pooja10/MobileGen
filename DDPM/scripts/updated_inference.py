@@ -29,13 +29,6 @@ import wandb
 from unet_compressed_v1 import UNet_conditional_student_v1
 from unet_compressed_v2 import UNet_conditional_student_v2
 
-import random
-
-def pick_image(x, n):
-	i = random.randint(0, n-1)
-	generated_img = x[i].cpu().permute(1, 2, 0)
-	return generated_img
-
 class Diffusion:
 	def __init__(self, noise_steps=1000, beta_start=1e-4, beta_end=0.02, img_size=256, num_classes=10, c_in=3, c_out=3, device="cuda", version=1, **kwargs):
 		self.noise_steps = noise_steps
@@ -51,7 +44,6 @@ class Diffusion:
 			self.model = UNet_conditional_student_v1(c_in, c_out, num_classes=num_classes,**kwargs).to(device)
 		elif self.version==2:
 			self.model = UNet_conditional_student_v2(c_in, c_out, num_classes=num_classes,**kwargs).to(device)
-		self.model = UNet_conditional_student_v2(c_in, c_out, num_classes=num_classes,**kwargs).to(device)
 		self.ema_model = copy.deepcopy(self.model).eval().requires_grad_(False)
 		self.device = device
 		self.c_in = c_in
@@ -177,4 +169,21 @@ class Diffusion:
 		
 		return ilist
 
+def infer(obj_class, version):
+	n = 1
+	device = "cuda"
 	
+	if version==1:
+	    model = UNet_conditional_student_v1(num_classes=10, remove_deep_conv=True).to(device)
+	    ckpt = torch.load("models/v1/ema_student_ckpt.pt")
+	elif version==2:
+	    model = UNet_conditional_student_v2(num_classes=10, remove_deep_conv=False).to(device)
+	    ckpt = torch.load("models/v2/ema_student_ckpt.pt")
+	model = model.eval().requires_grad_(False)
+	model.load_state_dict(ckpt)
+	
+	diffusion = Diffusion(img_size=64, device=device, version=version)
+	y = torch.Tensor([obj_class] * n).long().to(device)
+	x = diffusion.sample(model, y, cfg_scale=3)
+	generated_img = x[0].cpu().permute(1, 2, 0)
+	return generated_img
