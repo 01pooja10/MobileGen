@@ -36,3 +36,61 @@ The link to the CIFAR 64x64 dataset is available [here](https://www.kaggle.com/d
 ## Mobile Deployment Diagram
 The flowchart below depicts the overall flow of data (images and labels) between the model and our mobile application.
 ![image](https://github.com/01pooja10/MobileGen/assets/66198904/0c04808c-b6f2-4e02-805a-0acb96c61804)
+
+
+## Contributor
+
+<td width:25%>
+
+Pooja Ravi
+
+<p align="center">
+<img src = "https://avatars3.githubusercontent.com/u/66198904?s=460&u=06bd3edde2858507e8c42569d76d61b3491243ad&v=4"  height="120" alt="Pooja Ravi">
+</p>
+<p align="center">
+<a href = "https://github.com/01pooja10"><img src = "http://www.iconninja.com/files/241/825/211/round-collaboration-social-github-code-circle-network-icon.svg" width="36" height = "36"/></a>
+<a href = "https://www.linkedin.com/in/pooja-ravi-9b88861b2/">
+<img src = "http://www.iconninja.com/files/863/607/751/network-linkedin-social-connection-circular-circle-media-icon.svg" width="36" height="36"/>
+</a>
+</p>
+</td>
+
+
+<td width:25%>
+
+Aneri Gandhi
+
+<p align="center">
+<img src = "https://avatars3.githubusercontent.com/u/66198904?s=460&u=06bd3edde2858507e8c42569d76d61b3491243ad&v=4"  height="120" alt="Pooja Ravi">
+</p>
+<p align="center">
+<a href = "https://github.com/amg10"><img src = "http://www.iconninja.com/files/241/825/211/round-collaboration-social-github-code-circle-network-icon.svg" width="36" height = "36"/></a>
+<a href = "https://www.linkedin.com/in/aneri-manoj-gandhi/">
+<img src = "http://www.iconninja.com/files/863/607/751/network-linkedin-social-connection-circular-circle-media-icon.svg" width="36" height="36"/>
+</a>
+</p>
+</td>
+
+
+<td width:25%>
+
+Sruthi Srinivasan
+
+<p align="center">
+<img src = "https://avatars3.githubusercontent.com/u/66198904?s=460&u=06bd3edde2858507e8c42569d76d61b3491243ad&v=4"  height="120" alt="Pooja Ravi">
+</p>
+<p align="center">
+<a href = "https://github.com/sruthi0107"><img src = "http://www.iconninja.com/files/241/825/211/round-collaboration-social-github-code-circle-network-icon.svg" width="36" height = "36"/></a>
+<a href = "[https://www.linkedin.com/in/pooja-ravi-9b88861b2/](https://www.linkedin.com/in/sruthi-srinivasan/)">
+<img src = "http://www.iconninja.com/files/863/607/751/network-linkedin-social-connection-circular-circle-media-icon.svg" width="36" height="36"/>
+</a>
+</p>
+</td>
+
+
+## License
+MIT © Pooja Ravi
+
+This project is licensed under the MIT License - see the [License](LICENSE) file for details
+
+[![License](http://img.shields.io/:license-mit-blue.svg?style=flat-square)](http://badges.mit-license.org)
