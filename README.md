@@ -67,7 +67,7 @@ Pooja Ravi
 Aneri Gandhi
 
 <p align="center">
-<img src = "https://avatars1.githubusercontent.com/u/20011207?s=400&u=7570f3915eca3bcd55cd72c60038e4f68965db4b&v=4"  height="120" alt="Aneri Gandhi">
+<img src = "https://avatars.githubusercontent.com/u/40311799?v=4"  height="120" alt="Aneri Gandhi">
 </p>
 <p align="center">
 <a href = "https://github.com/amg10"><img src = "http://www.iconninja.com/files/241/825/211/round-collaboration-social-github-code-circle-network-icon.svg" width="36" height = "36"/></a>
@@ -82,7 +82,7 @@ Aneri Gandhi
 Sruthi Srinivasan
 
 <p align="center">
-<img src = "https://avatars1.githubusercontent.com/u/20011207?s=400&u=7570f3915eca3bcd55cd72c60038e4f68965db4b&v=4"  height="120" alt="Aneri Gandhi">
+<img src = "https://avatars.githubusercontent.com/u/63657533?v=4"  height="120" alt="Aneri Gandhi">
 </p>
 <p align="center">
 <a href = "https://github.com/sruthi0107"><img src = "http://www.iconninja.com/files/241/825/211/round-collaboration-social-github-code-circle-network-icon.svg" width="36" height = "36"/></a>
