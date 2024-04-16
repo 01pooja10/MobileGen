@@ -16,6 +16,18 @@ A repository that deploys a diffusion model (DDPM) on mobile devices with sped-u
      The distillation process ensures that the student model gets some level of guidance in terms of training a smaller and more compressed student model. 
 3. Pruning @ Inference
       Pruning ensures that certain connections (weights) of layers such as convolutions and Linear layers from our UNet model are sufficiently         
-      compressed (pruned) using L1 unstructed method available through PyTorch.
+      compressed (pruned) using the L1 unstructed method available through PyTorch.
 
+## DDPM Results
+ - Version 1
+![image](https://github.com/01pooja10/MobileGen/assets/66198904/ff71f374-fd37-4c53-a4a0-33712ddb8f7f)
 
+- Version 2
+![image](https://github.com/01pooja10/MobileGen/assets/66198904/825901ec-deeb-42a4-adf1-58c7712c5092)
+
+## Inference Results
+![image](https://github.com/01pooja10/MobileGen/assets/66198904/4bf03a29-80f3-46d9-979a-53da39062272)
+
+## Mobile Deployment Diagram
+The flowchart below depicts the overall flow of data (images and labels) between the model and our mobile application.
+![image](https://github.com/01pooja10/MobileGen/assets/66198904/0c04808c-b6f2-4e02-805a-0acb96c61804)
