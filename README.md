@@ -25,16 +25,20 @@ The link to the CIFAR 64x64 dataset is available [here](https://www.kaggle.com/d
 
 ## DDPM Results
  - Version 1
-![image](https://github.com/01pooja10/MobileGen/assets/66198904/ff71f374-fd37-4c53-a4a0-33712ddb8f7f)
+   
+![image](https://github.com/01pooja10/MobileGen/assets/66198904/5dc4801e-e20a-4445-ba7c-439288b16df7)
 
 - Version 2
+  
 ![image](https://github.com/01pooja10/MobileGen/assets/66198904/825901ec-deeb-42a4-adf1-58c7712c5092)
 
 ## Inference Results
+
 ![image](https://github.com/01pooja10/MobileGen/assets/66198904/4bf03a29-80f3-46d9-979a-53da39062272)
 
 ## Mobile Deployment Diagram
 The flowchart below depicts the overall flow of data (images and labels) between the model and our mobile application.
+
 ![image](https://github.com/01pooja10/MobileGen/assets/66198904/0c04808c-b6f2-4e02-805a-0acb96c61804)
 
 
